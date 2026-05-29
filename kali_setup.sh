@@ -150,24 +150,24 @@ for size in medium high auto; do
 done
 
 # Install ligolo-ng
-echo "[*] Compiling ligolo-ng..."
-if [ ! -d /opt/ligolo-ng ]; then
-    sudo git clone https://github.com/nicocha30/ligolo-ng /opt/ligolo-ng
-fi
-(
-    cd /opt/ligolo-ng
-    sudo go build -o agent cmd/agent/main.go
-    sudo go build -o proxy cmd/proxy/main.go
-)
+# echo "[*] Compiling ligolo-ng..."
+# if [ ! -d /opt/ligolo-ng ]; then
+#     sudo git clone https://github.com/nicocha30/ligolo-ng /opt/ligolo-ng
+# fi
+# (
+#     cd /opt/ligolo-ng
+#     sudo go build -o agent cmd/agent/main.go
+#     sudo go build -o proxy cmd/proxy/main.go
+# )
 
 # Set dnsmasq
-echo "[*] Configuring dnsmasq..."
-NETWORK_MANAGER_FILE="/etc/NetworkManager/NetworkManager.conf"
-if grep -q "dns=" "${NETWORK_MANAGER_FILE}"; then
-    sudo sed -i '/dns=/c\dns=dnsmasq' "${NETWORK_MANAGER_FILE}"
-else
-    sudo sed -i '/\[main\]/a dns=dnsmasq' "${NETWORK_MANAGER_FILE}"
-fi
+# echo "[*] Configuring dnsmasq..."
+# NETWORK_MANAGER_FILE="/etc/NetworkManager/NetworkManager.conf"
+# if grep -q "dns=" "${NETWORK_MANAGER_FILE}"; then
+#     sudo sed -i '/dns=/c\dns=dnsmasq' "${NETWORK_MANAGER_FILE}"
+# else
+#     sudo sed -i '/\[main\]/a dns=dnsmasq' "${NETWORK_MANAGER_FILE}"
+# fi
 
 # Install xrdp
 echo "[*] Installing xrdp..."
