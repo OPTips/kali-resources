@@ -4,6 +4,12 @@
 
 OVPN_DIR="${1:-$(pwd)}"
 
+# ── Vérification root ──────────────────────────────────────────────────────────
+if [[ $EUID -ne 0 ]]; then
+    echo "Erreur : ce script doit être lancé en root (sudo $0 $*)." >&2
+    exit 1
+fi
+
 # ── Vérifications ──────────────────────────────────────────────────────────────
 if ! command -v whiptail &>/dev/null; then
     echo "whiptail n'est pas installé. Tentative d'installation..."
@@ -40,11 +46,16 @@ for f in "${FILES[@]}"; do
     items+=("$(basename "$f")" "")
 done
 
+# ── Dimensions dynamiques selon la taille du terminal ─────────────────────────
+BOX_HEIGHT=$(( $(tput lines) - 4 ))
+BOX_WIDTH=$(( $(tput cols)  - 4 ))
+LIST_HEIGHT=$(( BOX_HEIGHT  - 8 ))
+
 # ── Menu whiptail ──────────────────────────────────────────────────────────────
 choice=$(whiptail \
     --title "OpenVPN — Choix du profil" \
     --menu "\nRépertoire : $OVPN_DIR\n\nSélectionnez un profil :" \
-    20 60 10 \
+    "$BOX_HEIGHT" "$BOX_WIDTH" "$LIST_HEIGHT" \
     "${items[@]}" \
     3>&1 1>&2 2>&3)
 
@@ -55,4 +66,4 @@ if [[ -z "$choice" ]]; then
 fi
 
 echo "Connexion : $choice"
-sudo openvpn "$OVPN_DIR/$choice"
+openvpn "$OVPN_DIR/$choice"

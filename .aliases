@@ -1,7 +1,7 @@
 alias ll='ls --color=always -hla'
 alias h='history'
 alias openport="awk -F/ '/open/{print \$1}{ORS=\",\"}'"
-alias vpnchoice='sudo vpnchoice'
+alias vpn-connect='sudo vpn-connect ~/ovpn_files'
 alias folders='sudo mount-shared-folders'
 
 function ctfstrings {

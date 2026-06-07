@@ -108,17 +108,13 @@ echo "$VIM_CONTENT" | sudo tee /root/.vimrc > /dev/null
 
 # Copy scripts
 echo "[*] Downloading custom scripts..."
-for script in upload monip nmaper vpnchoice dnsmasq-update; do
+for script in upload monip nmaper vpn-connect; do
     sudo wget -qO "/usr/local/bin/${script}" "${KALI_RESOURCES_PATH}${script}"
     sudo chmod +x "/usr/local/bin/${script}"
 done
 
-# Create vpnchoice folder
+# Create ovpn folder
 mkdir -p ~/ovpn_files
-
-# Install simple-term-menu
-echo "[*] Installing simple-term-menu..."
-sudo pip install simple-term-menu --break-system-packages
 
 # Install updog
 echo "[*] Installing updog..."
