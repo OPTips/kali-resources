@@ -1,119 +1,58 @@
 #!/usr/bin/env bash
-# vpn-connect.sh — Menu interactif de sélection de profil OpenVPN
+# vpn-connect.sh — Sélection de profil OpenVPN via whiptail
 # Usage : ./vpn-connect.sh [répertoire]  (défaut : répertoire courant)
 
 OVPN_DIR="${1:-$(pwd)}"
 
-# ── Styles terminal ────────────────────────────────────────────────────────────
-RESET=$(tput sgr0)
-BOLD=$(tput bold)
-REV=$(tput rev)
-FG_CYAN=$(tput setaf 6)
-FG_GREEN=$(tput setaf 2)
-FG_YELLOW=$(tput setaf 3)
-FG_RED=$(tput setaf 1)
-FG_GRAY=$(tput setaf 8 2>/dev/null || tput setaf 7)
-
 # ── Vérifications ──────────────────────────────────────────────────────────────
+if ! command -v whiptail &>/dev/null; then
+    echo "whiptail n'est pas installé. Tentative d'installation..."
+    if command -v apt-get &>/dev/null; then
+        sudo apt-get install -y whiptail
+    elif command -v dnf &>/dev/null; then
+        sudo dnf install -y newt
+    elif command -v yum &>/dev/null; then
+        sudo yum install -y newt
+    elif command -v pacman &>/dev/null; then
+        sudo pacman -S --noconfirm libnewt
+    else
+        echo "Erreur : gestionnaire de paquets non reconnu, installez whiptail manuellement." >&2
+        exit 1
+    fi
+fi
+
 if [[ ! -d "$OVPN_DIR" ]]; then
-    echo "${FG_RED}Erreur :${RESET} répertoire '$OVPN_DIR' introuvable." >&2
+    echo "Erreur : répertoire '$OVPN_DIR' introuvable." >&2
     exit 1
 fi
 
 mapfile -t FILES < <(find "$OVPN_DIR" -maxdepth 1 -name "*.ovpn" -type f | sort)
 
 if [[ ${#FILES[@]} -eq 0 ]]; then
-    echo "${FG_RED}Erreur :${RESET} aucun fichier .ovpn trouvé dans '$OVPN_DIR'." >&2
+    echo "Erreur : aucun fichier .ovpn trouvé dans '$OVPN_DIR'." >&2
     exit 1
 fi
 
-TOTAL=${#FILES[@]}
-
-# ── Dessin du menu ─────────────────────────────────────────────────────────────
-draw_menu() {
-    local selected=$1
-
-    tput clear
-    echo ""
-    echo "  ${BOLD}${FG_CYAN}╔══════════════════════════════════════╗${RESET}"
-    echo "  ${BOLD}${FG_CYAN}║       OpenVPN — Choix du profil      ║${RESET}"
-    echo "  ${BOLD}${FG_CYAN}╚══════════════════════════════════════╝${RESET}"
-    echo ""
-    echo "  ${FG_YELLOW}Répertoire :${RESET} $OVPN_DIR"
-    echo ""
-    echo "  ${FG_GRAY}↑ ↓  naviguer   Entrée  lancer   q  quitter${RESET}"
-    echo "  ${FG_GRAY}──────────────────────────────────────────${RESET}"
-    echo ""
-
-    for i in "${!FILES[@]}"; do
-        local name
-        name=$(basename "${FILES[$i]}")
-        if [[ $i -eq $selected ]]; then
-            printf "  ${BOLD}${REV}  ▶  %-34s ${RESET}\n" "$name"
-        else
-            printf "     ${FG_GRAY}%-34s${RESET}\n" "$name"
-        fi
-    done
-
-    echo ""
-    printf "  ${FG_GRAY}Profil %d / %d${RESET}\n" $(( selected + 1 )) "$TOTAL"
-}
-
-# ── Nettoyage à la sortie ──────────────────────────────────────────────────────
-cleanup() {
-    tput cnorm   # Restaure le curseur
-    tput rmcup   # Restaure l'écran d'origine (si supporté)
-}
-trap cleanup INT TERM EXIT
-
-# ── Boucle principale ──────────────────────────────────────────────────────────
-tput smcup      # Sauvegarde l'écran
-tput civis      # Cache le curseur
-
-selected=0
-
-while true; do
-    draw_menu "$selected"
-
-    IFS= read -rs -n1 key
-
-    # Séquences d'échappement (flèches, etc.)
-    if [[ $key == $'\x1b' ]]; then
-        read -rs -n2 -t 0.15 seq
-        key+="$seq"
-    fi
-
-    case "$key" in
-        $'\x1b[A' | k)   # ↑ ou k (vim)
-            (( selected-- ))
-            (( selected < 0 )) && selected=$(( TOTAL - 1 ))
-            ;;
-        $'\x1b[B' | j)   # ↓ ou j (vim)
-            (( selected++ ))
-            (( selected >= TOTAL )) && selected=0
-            ;;
-        $'\x0a' | $'\x0d' | ' ')  # Entrée ou Espace
-            break
-            ;;
-        $'\x1b' | q | Q)   # Échap, q
-            tput cnorm
-            tput rmcup
-            echo "Connexion annulée."
-            exit 0
-            ;;
-    esac
+# ── Construction de la liste pour whiptail ─────────────────────────────────────
+# Format attendu : "tag" "description" par entrée
+items=()
+for f in "${FILES[@]}"; do
+    items+=("$(basename "$f")" "")
 done
 
-# ── Lancement ─────────────────────────────────────────────────────────────────
-chosen="${FILES[$selected]}"
-name=$(basename "$chosen")
+# ── Menu whiptail ──────────────────────────────────────────────────────────────
+choice=$(whiptail \
+    --title "OpenVPN — Choix du profil" \
+    --menu "\nRépertoire : $OVPN_DIR\n\nSélectionnez un profil :" \
+    20 60 10 \
+    "${items[@]}" \
+    3>&1 1>&2 2>&3)
 
-tput cnorm
-tput rmcup
+# ── Lancement ──────────────────────────────────────────────────────────────────
+if [[ -z "$choice" ]]; then
+    echo "Connexion annulée."
+    exit 0
+fi
 
-echo ""
-echo "${BOLD}${FG_GREEN}▶  Connexion :${RESET} $name"
-echo "${FG_GRAY}   sudo openvpn \"$chosen\"${RESET}"
-echo ""
-
-sudo openvpn "$chosen"
+echo "Connexion : $choice"
+sudo openvpn "$OVPN_DIR/$choice"
