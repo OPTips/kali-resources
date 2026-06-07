@@ -46,16 +46,11 @@ for f in "${FILES[@]}"; do
     items+=("$(basename "$f")" "")
 done
 
-# ── Dimensions dynamiques selon la taille du terminal ─────────────────────────
-BOX_HEIGHT=$(( $(tput lines) - 4 ))
-BOX_WIDTH=$(( $(tput cols)  - 4 ))
-LIST_HEIGHT=$(( BOX_HEIGHT  - 8 ))
-
 # ── Menu whiptail ──────────────────────────────────────────────────────────────
 choice=$(whiptail \
     --title "OpenVPN — Choix du profil" \
     --menu "\nRépertoire : $OVPN_DIR\n\nSélectionnez un profil :" \
-    "$BOX_HEIGHT" "$BOX_WIDTH" "$LIST_HEIGHT" \
+    20 60 10 \
     "${items[@]}" \
     3>&1 1>&2 2>&3)
 
